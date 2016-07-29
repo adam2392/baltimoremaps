@@ -1,0 +1,14 @@
+click==6.6
+click-plugins==1.0.3
+cligj==0.4.0
+descartes==1.0.2
+Fiona==1.7.0.post2
+geopandas==0+unknown
+munch==2.0.4
+numpy==1.11.1
+pandas==0.18.1
+pyproj==1.9.5.1
+python-dateutil==2.5.3
+pytz==2016.6.1
+Shapely==1.5.16
+six==1.10.0
