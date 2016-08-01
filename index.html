@@ -8,6 +8,9 @@
     <script type="text/javascript" src="public/js/jquery-1.11.3.min.js"></script>
     <script type="text/javascript" src="public/js/jquery-ui.min.js"></script>
     <script type="text/javascript" src="public/js/queue.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/topojson/1.6.9/topojson.min.js"></script>
+
+    <link rel="stylesheet" src="public/css/index.css">
 <!--    <script src="https://cdnjs.cloudflare.com/ajax/libs/queue-async/1.0.7/queue.min.js"></script> -->
 
     <title>Crime Map</title>
@@ -24,7 +27,7 @@
           <option value="balt_city">Baltimore City</option>
           <option value="greater_balt">Baltimore City and County</option>
           <option value="maryland">Maryland</option>
-          <option value="delmarva">DelMarVa Area</option>
+          <option value="california">California</option>
         </select>
         <hr>
 
@@ -33,13 +36,16 @@
 
             <div id="income-range" style="width: 700px;"></div>
         <p><h4><strong>Percent households with annual income within the selected range:</strong></h4></p>
-
         <div id="map">
             <!-- This is where the map will be inserted using d3.js -->
         </div>
-
+        <div id="container" style="position: relative; width: 500px; height: 300px;"></div>
+        
         <p style="font-size:75%">SOURCE: US Census Data, 5-year American Community Survey 2013</p>
     </div>
+        <div id="pol_map">
+            <!-- Political map of USA -->
+        </div>
 
     <hr>
     <h6>Things to try:</h6>
@@ -49,6 +55,7 @@
         <li>Drag the left slider inward to see areas of progressively higher income</li>
     </ul>
     <script src="public/js/drawmap.js"></script>
+    <script src="public/js/drawpolmap.js"></script>
     </body>
 
 </html>

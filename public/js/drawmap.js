@@ -1,8 +1,8 @@
 /*
     GLOBAL VARS
 */
-var width = 700;
-var mapRatio = 0.75;
+var width = 600;
+var mapRatio = 0.6;
 var height = width * mapRatio;
 var embiggen = 1.00;
 var mapVOffset = 0.05
@@ -14,8 +14,8 @@ var svg = d3.select("#map").append("svg")
 
 // var region = document.getElementById("regions")
 var region = document.getElementById("regions").value
-var census_file = "../data/" + "delmarva" + "_census_data.csv";
-var shape_file = "../data/" + "balt_city" + "_geo_data.json";
+var census_file = "../data/" + region + "_census_data.csv";
+var shape_file = "../data/" + region + "_geo_data.json";
 
 var cs = ['rgb(255,255,217)','rgb(237,248,177)','rgb(199,233,180)','rgb(127,205,187)','rgb(65,182,196)','rgb(29,145,192)','rgb(34,94,168)','rgb(37,52,148)','rgb(8,29,88)']
 var q = d3.scaleQuantile()
@@ -31,6 +31,62 @@ var dataMap = d3.map(); // Create an array, see https://github.com/mbostock/d3/w
 var data = [];
 var counts = [];
 var dataKeys = [];
+
+$(function() {
+    console.log("Creating sliders using jQuery...")
+    var trueValues = [" < $10000", "$15000", "$20000", "$25000", "$30000", "$35000", "$40000", "$45000", "$50000", "$60000", "$75000", "$100000", "$125000", "$150000", "$200000", " > $200000"];
+
+    var values = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 25, 30, 40, 41]
+
+    var slider = $("#income-range").slider({
+        orientation: 'horizontal',
+        range: true,
+        min: 2,
+        max: 41,
+        values: [loLim, hiLim],
+        slide: function(event, ui) {
+            var includeLeft = event.keyCode != $.ui.keyCode.RIGHT;
+            var includeRight = event.keyCode != $.ui.keyCode.LEFT;
+            var value = findNearest(includeLeft, includeRight, ui.value);
+            if (ui.value == ui.values[0]) {
+                slider.slider('values', 0, value);
+            }
+            else {
+                slider.slider('values', 1, value);
+            }
+            $("#amount").val(getRealValue(slider.slider('values', 0)) + ' to ' + getRealValue(slider.slider('values', 1)));
+            updateNew(values.indexOf(slider.slider('values', 0)), values.indexOf(slider.slider('values', 1)));
+            return false;
+        },
+    });
+
+    $("#amount").val(getRealValue(slider.slider('values', 0)) + ' to ' + getRealValue(slider.slider('values', 1)));
+
+    function findNearest(includeLeft, includeRight, value) {
+        var nearest = null;
+        var diff = null;
+        for (var i = 0; i < values.length; i++) {
+            if ((includeLeft && values[i] <= value) || (includeRight && values[i] >= value)) {
+                var newDiff = Math.abs(value - values[i]);
+                if (diff == null || newDiff < diff) {
+                    nearest = values[i];
+                    diff = newDiff;
+                }
+            }
+        }
+        return nearest;
+    }
+
+    function getRealValue(sliderValue) {
+        for (var i = 0; i < values.length; i++) {
+            if (values[i] >= sliderValue) {
+                return trueValues[i];
+            }
+        }
+        return 0;
+    }
+
+});
 
 /* 
     AREA FOR FUNCTIONS TO CREATE MAP
@@ -49,10 +105,10 @@ function makeMap() {
     var region = document.getElementById("regions").value
 
     // initialize file locations for corresponding region
-    // var census_file = "../data/" + region + "_census_data.csv";
-    // var shape_file = "../data/" + region + "_geo_data.json";
-    var census_file = "../data/" + "delmarva" + "_census_data.csv";
-    var shape_file = "../data/" + "balt_city" + "_geo_data.json";
+    var census_file = "../data/" + region + "_census_data.csv";
+    var shape_file = "../data/" + region + "_geo_data.json";
+    // var census_file = "../data/" + "delmarva" + "_census_data.csv";
+    // var shape_file = "../data/" + "balt_city" + "_geo_data.json";
 
     // wait for json/csv of shape_files/census_files to be loaded
     // -> call main function
@@ -147,7 +203,6 @@ function loadCSVData(csvData) {
     var dataKeys = Object.keys(data[0]); // get the first column, which are the keys
     dataKeys.shift();                   // shift out the objectID = fips key
 
-    console.log(dataKeys);
     csvData.map(function(d){
         var count = 0;
         var total = 0;
