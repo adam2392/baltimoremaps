@@ -1,5 +1,5 @@
 // data directories
-var pol_file = "../data/pol_map/USA_pol_data.csv";
+var pol_csv = "../data/pol_map/USA_pol_data.csv";
 var usa_json = "../data/pol_map/usa.topo.json";
 var usa_states_json = "../data/pol_map/states_usa.topo.json";
 var usa_cities_json = "../data/pol_map/cities_usa.topo.json";
@@ -37,18 +37,63 @@ svg_pol.append("rect")
 
 var g = svg_pol.append("g");
 
-$(window).resize(function() {
-  var w = $("#map").width();
-  svg.attr("width", w);
-  svg.attr("height", w * height / width);
-});
+// $(window).resize(function() {
+//   var w = $("#map").width();
+//   svg_pol.attr("width", w);
+//   svg_pol.attr("height", w * height / width);
+// });
 
-// load topojson for usa split by states
-d3.json(usa_states_json, function(error, usa_states){
-	if (error) return console.error(error);
+// create a queue for asynchronous loading
+d3.queue()
+	.defer(d3.json, usa_states_json)
+	.defer(d3.csv, pol_csv)
+	.await(ready);
+
+/* MAIN CODE SECTION FOR LOADING IN DATA AND RENDERING IT */
+function ready(error, usa_states, poll) {
+	if (error) throw error;
+	numStates = (usa_states.objects.states_usa.geometries).length;
+
+	// debug messages
 	console.log("Reading in topojson for states.")
 	console.log(usa_states);
+	console.log(poll);
+	console.log(numStates)
+	var repVote = {};
+	var demVote = {};
+	var repRate = {}
 
+	// loop through polling data
+	poll.forEach(function(d) { 
+		if (d.State != 'DC') {
+			if (typeof repVote[d.State] != 'undefined') {
+				repVote[d.State] += parseFloat(d['Rep Vote'].replace(",", ""));
+				demVote[d.State] += parseFloat(d['Dem Vote'].replace(",", ""));
+			} else {
+				repVote[d.State] = parseFloat(d['Rep Vote'].replace(",", ""));
+				demVote[d.State] = parseFloat(d['Dem Vote'].replace(",", ""));
+			}
+		} else {
+			repVote[d.State] = 0.5
+		}
+	})
+	var states = Object.keys(repVote)
+	var min = 1
+	var max = 0
+
+	for(var i=0; i<states.length; i++) {
+		var state = states[i]
+		repRate[state] = repVote[state] / (repVote[state] + demVote[state]);
+		min = Math.min(repRate[state], min);
+		max = Math.max(repRate[state], max);
+	}
+
+	// Define colorscale for map
+	var color = d3.scaleOrdinal()
+	    .domain([min, max])
+	    .range(colorbrewer.RdBu[5]);
+
+	console.log(repRate)
 	state = null;
 	g.append("g")
 			.attr("id", "states")
@@ -59,14 +104,12 @@ d3.json(usa_states_json, function(error, usa_states){
 		.attr("id", function(d) { return d.id; })
 		.attr("class", function(d) { return "states " + d.properties.name; })
 		.attr("d", path)
-		.attr("fill", "gray")
+		.attr("fill", function(d) {
+			var state = abbrState(d.properties.name, 'abbr');
+			return color(repRate[state]);
+		})
 		.on("click", state_clicked);
-
-	// g.append("path")
- //      .datum(topojson.mesh(usa_states, usa_states.objects.states_usa, function(a, b) { return a !== b; }))
- //      .attr("id", "state-borders")
- //      .attr("d", path);
-});
+}
 
 function state_clicked (d) {
 	g.selectAll("#cities").remove();
@@ -134,4 +177,86 @@ function zoom(d) {
 		.duration(750)
 		.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")scale(" + k + ")translate(" + -x + "," + -y + ")")
 		.style("stroke-width", 1.5 / k + "px");
+}
+
+
+//https://gist.github.com/CalebGrove/c285a9510948b633aa47
+//
+// USAGE:
+// abbrState('ny', 'name');
+// --> 'New York'
+// abbrState('New York', 'abbr');
+// --> 'NY'
+function abbrState(input, to){
+    
+    var states = [
+        ['Arizona', 'AZ'],
+        ['Alabama', 'AL'],
+        ['Alaska', 'AK'],
+        ['Arizona', 'AZ'],
+        ['Arkansas', 'AR'],
+        ['California', 'CA'],
+        ['Colorado', 'CO'],
+        ['Connecticut', 'CT'],
+        ['Delaware', 'DE'],
+        ['Florida', 'FL'],
+        ['Georgia', 'GA'],
+        ['Hawaii', 'HI'],
+        ['Idaho', 'ID'],
+        ['Illinois', 'IL'],
+        ['Indiana', 'IN'],
+        ['Iowa', 'IA'],
+        ['Kansas', 'KS'],
+        ['Kentucky', 'KY'],
+        ['Kentucky', 'KY'],
+        ['Louisiana', 'LA'],
+        ['Maine', 'ME'],
+        ['Maryland', 'MD'],
+        ['Massachusetts', 'MA'],
+        ['Michigan', 'MI'],
+        ['Minnesota', 'MN'],
+        ['Mississippi', 'MS'],
+        ['Missouri', 'MO'],
+        ['Montana', 'MT'],
+        ['Nebraska', 'NE'],
+        ['Nevada', 'NV'],
+        ['New Hampshire', 'NH'],
+        ['New Jersey', 'NJ'],
+        ['New Mexico', 'NM'],
+        ['New York', 'NY'],
+        ['North Carolina', 'NC'],
+        ['North Dakota', 'ND'],
+        ['Ohio', 'OH'],
+        ['Oklahoma', 'OK'],
+        ['Oregon', 'OR'],
+        ['Pennsylvania', 'PA'],
+        ['Rhode Island', 'RI'],
+        ['South Carolina', 'SC'],
+        ['South Dakota', 'SD'],
+        ['Tennessee', 'TN'],
+        ['Texas', 'TX'],
+        ['Utah', 'UT'],
+        ['Vermont', 'VT'],
+        ['Virginia', 'VA'],
+        ['Washington', 'WA'],
+        ['West Virginia', 'WV'],
+        ['Wisconsin', 'WI'],
+        ['Wyoming', 'WY'],
+    ];
+
+    if (to == 'abbr'){
+        input = input.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+        for(i = 0; i < states.length; i++){
+            if(states[i][0] == input){
+                return(states[i][1]);
+            }
+        }    
+    } else if (to == 'name'){
+        input = input.toUpperCase();
+        for(i = 0; i < states.length; i++){
+            if(states[i][1] == input){
+                return(states[i][0]);
+            }
+        }    
+    }
 }
